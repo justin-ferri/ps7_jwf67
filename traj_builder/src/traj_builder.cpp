@@ -451,11 +451,6 @@ void TrajBuilder::build_braking_traj(geometry_msgs::PoseStamped start_pose,
     vec_of_states.push_back(des_state);
 }
 
-double absolute_value(double number){
-
-
-}
-
 //main fnc of this library: constructs a spin-in-place reorientation to
 // point to goal coords, then a straight-line trajectory from start to goal
 //NOTE:  this function will clear out the vec_of_states vector of trajectory states.
