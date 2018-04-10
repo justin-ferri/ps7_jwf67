@@ -59,7 +59,16 @@ void DesStatePublisher::initializePublishers() {
     ROS_INFO("Initializing Publishers");
     desired_state_publisher_ = nh_.advertise<nav_msgs::Odometry>("/desState", 1, true);
     des_psi_publisher_ = nh_.advertise<std_msgs::Float64>("/desPsi", 1);
+    alarm_subscriber_ = nh_.subscribe("lidar_alarm",1, &DesStatePublisher::alarmCallback, this);
 }
+
+void DesStatePublisher::alarmCallback(const std_msgs::Bool& alarm_msg) 
+{ 
+  g_lidar_alarm = alarm_msg.data; //make the alarm status global, so main() can use it
+  if (g_lidar_alarm) {
+     ROS_INFO("LIDAR alarm received!"); 
+  }
+} 
 
 bool DesStatePublisher::estopServiceCallback(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
     ROS_WARN("estop!!");
@@ -126,6 +135,7 @@ void DesStatePublisher::pub_next_state() {
     //or if an e-stop has been cleared
     if (e_stop_reset_) {
         e_stop_reset_ = false; //reset trigger
+        // HALTING, E_STOPPED, DONE_W_SUBGOAL, and PURSUING_SUBGOAL
         if (motion_mode_ != E_STOPPED) {
             ROS_WARN("e-stop reset while not in e-stop mode");
         }
@@ -135,6 +145,12 @@ void DesStatePublisher::pub_next_state() {
         }
     }
     
+    //if the object is still trying to move and there's an object in front
+    if(motion_mode_ == PURSUING_SUBGOAL && g_lidar_alarm){
+        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
+        motion_mode_ = HALTING; 
+    }
+
     //state machine; results in publishing a new desired state
     switch (motion_mode_) {
         case E_STOPPED: //this state must be reset by a service

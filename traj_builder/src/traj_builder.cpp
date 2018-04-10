@@ -1,5 +1,5 @@
 #include<traj_builder/traj_builder.h>
-
+#include<math.h>
 //This library contains functions to build simple navigation trajectories.
 //The main function is: build_point_and_go_traj().  This function takes
 // arguments of a start pose, a goal pose, and a reference to a vector of
@@ -405,7 +405,54 @@ void TrajBuilder::build_triangular_spin_traj(geometry_msgs::PoseStamped start_po
 //compute trajectory corresponding to applying max prudent decel to halt
 void TrajBuilder::build_braking_traj(geometry_msgs::PoseStamped start_pose,
         std::vector<nav_msgs::Odometry> &vec_of_states) {
-    //FINISH ME!
+    //edit this to construct a valid braking trajectory to bring the robot to a halt, whether moving, rotating, or both
+    
+    //get the start_pose in the vector of states and enter it as the current state -> current_state.pose.pose is a geometry_msgs::Pose pose which would have the same position and orientation parts
+    nav_msgs::Odometry des_state;
+    des_state.header = start_pose.header;
+    des_state.pose.pose = start_pose.pose;
+
+    //initialize starting values
+    double x_start = start_pose.pose.position.x;
+    double y_start = start_pose.pose.position.y;
+    double psi_start = convertPlanarQuat2Psi(start_pose.pose.orientation);
+    double speed_start = des_state.twist.twist.linear.x;
+    double spin_rate_start = des_state.twist.twist.angular.z;
+
+    //initialize rate of speed
+    double speed_current = speed_start;
+
+    //initialize goal values
+    double x_des = x_start;
+    double y_des = y_start;
+    double psi_des = psi_start;
+
+    //bring to halt when moving, rotating, or both
+    //use given dt_ which default = 0.02, accel_max_ = 0.5
+    // x(t) = (1/2)*a*t^2 + vnot * t + xnot where x musts equate to 0 - for the position
+    //update the current speed and spin rate of the object and then update the current position
+    //then push the current state into the vector of states
+    //continue this process until the robot is not moving
+    while(speed_current > 0){
+        x_des = (1/2) * accel_max_ * dt_ * dt_ + speed_current * dt_ + cos(psi_start);
+        y_des = (1/2) * accel_max_ * dt_ * dt_ + speed_current * dt_ + sin(psi_start);
+
+        speed_current = speed_current - (accel_max_ * dt_);
+        psi_des = psi_des - (accel_max_ * dt_);
+
+        des_state.pose.pose.position.x = x_des;
+        des_state.pose.pose.position.y = y_des;
+        des_state.pose.pose.orientation = convertPlanarPsi2Quaternion(psi_des);
+
+        vec_of_states.push_back(des_state);
+    }
+    
+    des_state.twist.twist = halt_twist_;
+    vec_of_states.push_back(des_state);
+}
+
+double absolute_value(double number){
+
 
 }
 

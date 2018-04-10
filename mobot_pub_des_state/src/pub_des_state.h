@@ -56,6 +56,9 @@ private:
     double omega_max_; 
     double path_move_tol_; 
 
+    //lidar alarm status global
+    bool g_lidar_alarm;
+
     // some objects to support service and publisher
     ros::ServiceServer estop_service_;
     ros::ServiceServer estop_clear_service_;
@@ -65,6 +68,9 @@ private:
     ros::Publisher desired_state_publisher_;
     ros::Publisher des_psi_publisher_;
     
+    //need a subscriber for lidar
+    ros::Subscriber alarm_subscriber_;
+
     //a trajectory-builder object; 
     TrajBuilder trajBuilder_; 
 
@@ -75,6 +81,9 @@ private:
     bool clearEstopServiceCallback(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);
     bool flushPathQueueCB(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);
     bool appendPathQueueCB(mobot_pub_des_state::pathRequest& request,mobot_pub_des_state::pathResponse& response);
+
+    //lidar alarm status callback
+    void alarmCallback(const std_msgs::Bool& alarm_msg);
 
 public:
     DesStatePublisher(ros::NodeHandle& nh);//constructor
